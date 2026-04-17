@@ -2,9 +2,11 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
-
 import os
+
 TOKEN = os.getenv("TOKEN")
+
+print("DEBUG TOKEN:", TOKEN)
 
 STAFF_ROLE_ID = None
 LOG_CHANNEL_ID = None

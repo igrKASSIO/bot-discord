@@ -40,7 +40,6 @@ async def auto_fechar_ticket(canal, user_id):
             await log_channel.send(embed=embed)
 
         tickets_abertos.pop(user_id, None)
-
         await canal.delete()
 
     except:
@@ -103,10 +102,8 @@ class TicketControls(discord.ui.View):
         if log_channel:
             await log_channel.send(embed=embed)
 
-        # 🔥 REMOVE USUÁRIO DO SISTEMA
         try:
-            nome = interaction.channel.name
-            user_id = int(nome.split("-")[-1])
+            user_id = int(interaction.channel.name.split("-")[-1])
             tickets_abertos.pop(user_id, None)
         except:
             pass
@@ -142,7 +139,7 @@ class TicketModal(discord.ui.Modal, title="Solicitar Tag"):
         await interaction.channel.send(embed=embed)
 
 # =========================
-# SELECT
+# SELECT (RESETA AUTOMÁTICO)
 # =========================
 
 class PlatformSelect(discord.ui.Select):
@@ -153,14 +150,21 @@ class PlatformSelect(discord.ui.Select):
             discord.SelectOption(label="Twitch"),
             discord.SelectOption(label="Kick"),
         ]
+
         super().__init__(min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(TicketModal(self.values[0]))
+
+        # 🔥 REMOVE O SELECT (RESET VISUAL)
+        self.view.clear_items()
+
+        await interaction.response.send_modal(
+            TicketModal(self.values[0])
+        )
 
 class StartView(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None)
         self.add_item(PlatformSelect())
 
 # =========================
@@ -195,7 +199,6 @@ async def criar_ticket(interaction: discord.Interaction):
     if staff_role:
         overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
-    # 🔥 NOME COM ID (SEM BUG)
     canal = await guild.create_text_channel(
         name=f"solicitartag-{nome_usuario}-{user_id}",
         category=interaction.channel.category,

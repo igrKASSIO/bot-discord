@@ -89,10 +89,6 @@ class TicketControls(discord.ui.View):
             await log_channel.send(embed=embed)
             await log_channel.send(f"```{transcript[:1900]}```")
 
-        user_id = int(interaction.channel.name.split("-")[-1]) if "-" in interaction.channel.name else None
-        if user_id:
-            tickets_abertos.pop(user_id, None)
-
         await interaction.channel.delete()
 
 # =========================
@@ -214,13 +210,14 @@ class TicketPanel(discord.ui.View):
         )
 
 # =========================
-# MODAL PAINEL
+# MODAL PAINEL (ATUALIZADO COM IMAGEM)
 # =========================
 
 class PainelModal(discord.ui.Modal, title="Configurar Painel"):
 
     titulo = discord.ui.TextInput(label="Título")
     descricao = discord.ui.TextInput(label="Mensagem")
+    imagem = discord.ui.TextInput(label="URL da imagem (opcional)", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
@@ -229,6 +226,9 @@ class PainelModal(discord.ui.Modal, title="Configurar Painel"):
             description=self.descricao.value,
             color=0x3498db
         )
+
+        if self.imagem.value:
+            embed.set_image(url=self.imagem.value)
 
         await interaction.response.send_message(embed=embed, view=TicketPanel())
 

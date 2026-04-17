@@ -25,7 +25,7 @@ cooldown_ticket = {}
 # =========================
 
 async def auto_fechar_ticket(canal, user_id):
-    await asyncio.sleep(14400)  # 4 horas
+    await asyncio.sleep(14400)
 
     try:
         log_channel = bot.get_channel(LOG_CHANNEL_ID) if LOG_CHANNEL_ID else None
@@ -102,6 +102,14 @@ class TicketControls(discord.ui.View):
 
         if log_channel:
             await log_channel.send(embed=embed)
+
+        # 🔥 REMOVE USUÁRIO DO SISTEMA
+        try:
+            nome = interaction.channel.name
+            user_id = int(nome.split("-")[-1])
+            tickets_abertos.pop(user_id, None)
+        except:
+            pass
 
         await interaction.channel.delete()
 
@@ -187,8 +195,9 @@ async def criar_ticket(interaction: discord.Interaction):
     if staff_role:
         overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
+    # 🔥 NOME COM ID (SEM BUG)
     canal = await guild.create_text_channel(
-        name=f"solicitartag-{nome_usuario}",
+        name=f"solicitartag-{nome_usuario}-{user_id}",
         category=interaction.channel.category,
         overwrites=overwrites
     )

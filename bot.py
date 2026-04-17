@@ -26,7 +26,7 @@ cooldown_ticket = {}
 class EmbedModal(discord.ui.Modal, title="Criar Embed"):
 
     titulo = discord.ui.TextInput(label="Título")
-    descricao = discord.ui.TextInput(label="Mensagem", style=discord.TextStyle.paragraph)
+    descricao = discord.ui.TextInput(label="Mensagem", style=discord.TextStyle.paragraph, max_length=4000)
     cor = discord.ui.TextInput(label="Cor HEX (#000000)", required=False)
     imagem = discord.ui.TextInput(label="Imagem URL", required=False)
     rodape = discord.ui.TextInput(label="Rodapé", required=False)
@@ -60,9 +60,6 @@ async def embed_cmd(interaction: discord.Interaction):
 # =========================
 
 class TicketControls(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
     @discord.ui.button(label="Fechar Ticket", style=discord.ButtonStyle.red)
     async def fechar(self, interaction: discord.Interaction, button: discord.ui.Button):
 
@@ -210,20 +207,26 @@ class TicketPanel(discord.ui.View):
         )
 
 # =========================
-# MODAL PAINEL (ATUALIZADO COM IMAGEM)
+# MODAL PAINEL (SUPORTE TEXTO GRANDE + IMAGEM)
 # =========================
 
 class PainelModal(discord.ui.Modal, title="Configurar Painel"):
 
     titulo = discord.ui.TextInput(label="Título")
-    descricao = discord.ui.TextInput(label="Mensagem")
+    descricao = discord.ui.TextInput(
+        label="Mensagem",
+        style=discord.TextStyle.paragraph,
+        max_length=4000
+    )
     imagem = discord.ui.TextInput(label="URL da imagem (opcional)", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
+        texto = self.descricao.value
+
         embed = discord.Embed(
             title=self.titulo.value,
-            description=self.descricao.value,
+            description=texto[:4000],
             color=0x3498db
         )
 

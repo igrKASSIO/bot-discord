@@ -56,7 +56,7 @@ async def embed_cmd(interaction: discord.Interaction):
     await interaction.response.send_modal(EmbedModal())
 
 # =========================
-# BOTÃO FECHAR
+# FECHAR TICKET
 # =========================
 
 class TicketControls(discord.ui.View):
@@ -181,7 +181,7 @@ async def criar_ticket(interaction: discord.Interaction):
     await interaction.followup.send(f"Ticket criado: {canal.mention}", ephemeral=True)
 
 # =========================
-# CONFIRMAR BOTÃO
+# BOTÃO CONFIRMAR
 # =========================
 
 class ConfirmarTicketView(discord.ui.View):
@@ -207,14 +207,14 @@ class TicketPanel(discord.ui.View):
         )
 
 # =========================
-# MODAL PAINEL (SUPORTE TEXTO GRANDE + IMAGEM)
+# MODAL PAINEL (SUPORTE TOTAL A ENTER)
 # =========================
 
 class PainelModal(discord.ui.Modal, title="Configurar Painel"):
 
     titulo = discord.ui.TextInput(label="Título")
     descricao = discord.ui.TextInput(
-        label="Mensagem",
+        label="Mensagem (pode usar ENTER)",
         style=discord.TextStyle.paragraph,
         max_length=4000
     )
@@ -222,11 +222,9 @@ class PainelModal(discord.ui.Modal, title="Configurar Painel"):
 
     async def on_submit(self, interaction: discord.Interaction):
 
-        texto = self.descricao.value
-
         embed = discord.Embed(
             title=self.titulo.value,
-            description=texto[:4000],
+            description=self.descricao.value,  # 🔥 mantém ENTER
             color=0x3498db
         )
 
@@ -240,7 +238,7 @@ async def painel(interaction: discord.Interaction):
     await interaction.response.send_modal(PainelModal())
 
 # =========================
-# COMANDOS ADMIN
+# ADMIN
 # =========================
 
 @tree.command(name="setar_cargo")

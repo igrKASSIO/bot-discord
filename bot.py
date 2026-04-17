@@ -6,8 +6,6 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-print("DEBUG TOKEN:", TOKEN)
-
 STAFF_ROLE_ID = None
 LOG_CHANNEL_ID = None
 

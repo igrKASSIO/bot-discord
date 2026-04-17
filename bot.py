@@ -99,9 +99,9 @@ class TicketModal(discord.ui.Modal, title="Solicitar Tag"):
         self.plataforma = plataforma
 
     nome = discord.ui.TextInput(label="Qual seu nome?")
-    tempo = discord.ui.TextInput(label="Tempo de criação")
-    frequencia = discord.ui.TextInput(label="Frequência de postagens", style=discord.TextStyle.paragraph)
-    link = discord.ui.TextInput(label="Link")
+    tempo = discord.ui.TextInput(label="Quanto tempo faz live ou vídeos?")
+    frequencia = discord.ui.TextInput(label="Qual é sua frequência de postagens/lives?", style=discord.TextStyle.paragraph)
+    link = discord.ui.TextInput(label="Link do canal/perfil")
 
     async def on_submit(self, interaction: discord.Interaction):
 

@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import datetime
 import os
+import asyncio
 
 TOKEN = os.getenv("TOKEN")
 
@@ -20,14 +21,39 @@ tickets_abertos = {}
 cooldown_ticket = {}
 
 # =========================
+# AUTO CLOSE (4H)
+# =========================
+
+async def auto_fechar_ticket(canal, user_id):
+    await asyncio.sleep(14400)  # 4 horas
+
+    try:
+        log_channel = bot.get_channel(LOG_CHANNEL_ID) if LOG_CHANNEL_ID else None
+
+        embed = discord.Embed(
+            title="⏰ Ticket fechado automaticamente",
+            description=canal.name,
+            color=0xff0000
+        )
+
+        if log_channel:
+            await log_channel.send(embed=embed)
+
+        tickets_abertos.pop(user_id, None)
+
+        await canal.delete()
+
+    except:
+        pass
+
+# =========================
 # EMBED BUILDER
 # =========================
 
 class EmbedModal(discord.ui.Modal, title="Criar Embed"):
-
     titulo = discord.ui.TextInput(label="Título")
     descricao = discord.ui.TextInput(label="Mensagem", style=discord.TextStyle.paragraph, max_length=4000)
-    cor = discord.ui.TextInput(label="Cor HEX (#000000)", required=False)
+    cor = discord.ui.TextInput(label="Cor HEX", required=False)
     imagem = discord.ui.TextInput(label="Imagem URL", required=False)
     rodape = discord.ui.TextInput(label="Rodapé", required=False)
 
@@ -47,7 +73,7 @@ class EmbedModal(discord.ui.Modal, title="Criar Embed"):
         if self.imagem.value:
             embed.set_thumbnail(url=self.imagem.value)
 
-        embed.set_footer(text=f"{self.rodape.value} | Enviado por {interaction.user}")
+        embed.set_footer(text=f"{self.rodape.value} | {interaction.user}")
 
         await interaction.response.send_message(embed=embed)
 
@@ -56,7 +82,7 @@ async def embed_cmd(interaction: discord.Interaction):
     await interaction.response.send_modal(EmbedModal())
 
 # =========================
-# FECHAR TICKET
+# FECHAR MANUAL
 # =========================
 
 class TicketControls(discord.ui.View):
@@ -68,23 +94,14 @@ class TicketControls(discord.ui.View):
 
         log_channel = bot.get_channel(LOG_CHANNEL_ID) if LOG_CHANNEL_ID else None
 
-        mensagens = []
-        async for msg in interaction.channel.history(limit=200):
-            mensagens.append(f"{msg.author}: {msg.content}")
-
-        transcript = "\n".join(reversed(mensagens))
-
         embed = discord.Embed(
             title="Ticket fechado",
             description=interaction.channel.name,
             color=0xff0000
         )
 
-        embed.add_field(name="Fechado por", value=interaction.user.mention)
-
         if log_channel:
             await log_channel.send(embed=embed)
-            await log_channel.send(f"```{transcript[:1900]}```")
 
         await interaction.channel.delete()
 
@@ -117,7 +134,7 @@ class TicketModal(discord.ui.Modal, title="Solicitar Tag"):
         await interaction.channel.send(embed=embed)
 
 # =========================
-# SELECT PLATAFORMA
+# SELECT
 # =========================
 
 class PlatformSelect(discord.ui.Select):
@@ -128,7 +145,6 @@ class PlatformSelect(discord.ui.Select):
             discord.SelectOption(label="Twitch"),
             discord.SelectOption(label="Kick"),
         ]
-
         super().__init__(min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
@@ -159,29 +175,35 @@ async def criar_ticket(interaction: discord.Interaction):
 
     tickets_abertos[user_id] = True
 
+    guild = interaction.guild
     nome_usuario = interaction.user.name.lower().replace(" ", "-")
+    staff_role = guild.get_role(STAFF_ROLE_ID) if STAFF_ROLE_ID else None
 
-    canal = await interaction.guild.create_text_channel(
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+    }
+
+    if staff_role:
+        overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+    canal = await guild.create_text_channel(
         name=f"solicitartag-{nome_usuario}",
-        category=interaction.channel.category
+        category=interaction.channel.category,
+        overwrites=overwrites
     )
 
-    await canal.set_permissions(interaction.guild.default_role, view_channel=False)
-    await canal.set_permissions(interaction.user, view_channel=True)
-
-    staff = interaction.guild.get_role(STAFF_ROLE_ID) if STAFF_ROLE_ID else None
-    if staff:
-        await canal.set_permissions(staff, view_channel=True)
-
-    await canal.send(f"{interaction.user.mention}", view=TicketControls())
+    await canal.send("⏰ Este ticket será fechado automaticamente em 4 horas.", view=TicketControls())
     await canal.send(view=StartView())
 
     cooldown_ticket[user_id] = agora
 
+    bot.loop.create_task(auto_fechar_ticket(canal, user_id))
+
     await interaction.followup.send(f"Ticket criado: {canal.mention}", ephemeral=True)
 
 # =========================
-# BOTÃO CONFIRMAR
+# CONFIRMAR
 # =========================
 
 class ConfirmarTicketView(discord.ui.View):
@@ -199,32 +221,23 @@ class TicketPanel(discord.ui.View):
         options=[discord.SelectOption(label="Solicitar Tag")]
     )
     async def select_callback(self, interaction: discord.Interaction, select):
-
         await interaction.response.send_message(
-            "Clique abaixo para abrir o ticket",
+            "Clique para abrir",
             view=ConfirmarTicketView(),
             ephemeral=True
         )
 
-# =========================
-# MODAL PAINEL (SUPORTE TOTAL A ENTER)
-# =========================
-
 class PainelModal(discord.ui.Modal, title="Configurar Painel"):
 
     titulo = discord.ui.TextInput(label="Título")
-    descricao = discord.ui.TextInput(
-        label="Mensagem (pode usar ENTER)",
-        style=discord.TextStyle.paragraph,
-        max_length=4000
-    )
-    imagem = discord.ui.TextInput(label="URL da imagem (opcional)", required=False)
+    descricao = discord.ui.TextInput(label="Mensagem", style=discord.TextStyle.paragraph, max_length=4000)
+    imagem = discord.ui.TextInput(label="Imagem URL", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
         embed = discord.Embed(
             title=self.titulo.value,
-            description=self.descricao.value,  # 🔥 mantém ENTER
+            description=self.descricao.value,
             color=0x3498db
         )
 
@@ -245,13 +258,13 @@ async def painel(interaction: discord.Interaction):
 async def setar_cargo(interaction: discord.Interaction, cargo: discord.Role):
     global STAFF_ROLE_ID
     STAFF_ROLE_ID = cargo.id
-    await interaction.response.send_message("Cargo setado!", ephemeral=True)
+    await interaction.response.send_message("Cargo definido!", ephemeral=True)
 
 @tree.command(name="setar_logs")
 async def setar_logs(interaction: discord.Interaction, canal: discord.TextChannel):
     global LOG_CHANNEL_ID
     LOG_CHANNEL_ID = canal.id
-    await interaction.response.send_message("Logs setados!", ephemeral=True)
+    await interaction.response.send_message("Logs definidos!", ephemeral=True)
 
 # =========================
 # READY

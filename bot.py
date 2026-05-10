@@ -173,7 +173,7 @@ class TicketModal(discord.ui.Modal, title="Solicitar Tag"):
         self.plataforma = plataforma
 
     nome = discord.ui.TextInput(
-        label="Qual seu nome?"
+        label="Qual seu nick no game?"
     )
 
     tempo = discord.ui.TextInput(
